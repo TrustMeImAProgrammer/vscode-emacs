@@ -344,6 +344,10 @@
         "key": "alt+y",
         "command": "emacs.M-y",
         "when": "editorTextFocus"
+      },{
+        "key": "backspace",
+        "command": "emacs.backspace",
+        "when": "editorTextFocus"
       }
     ]
   },

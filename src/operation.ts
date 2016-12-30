@@ -1,5 +1,5 @@
 import {Editor} from './editor';
-
+import {commands} from 'vscode';
 export class Operation {
     private editor: Editor;
     private commandList: { [key: string]: (...args: any[]) => any, thisArgs?: any } = {};
@@ -59,6 +59,10 @@ export class Operation {
                 }).catch(function(error) {
                     console.log(error);
                 });
+            },
+            "backspace": () => {
+                commands.executeCommand("deleteLeft");
+                commands.executeCommand("cancelSelection");
             }
         };
     }
