@@ -9,7 +9,7 @@ export function activate(context: vscode.ExtensionContext): void {
 
             // Edit
             "C-k", "C-w", "M-w", "C-y", "C-x_C-o",
-            "C-x_u", "C-/",
+            "C-x_u", "C-/", "M-y",
 
             // R-Mode
             "C-x_r"

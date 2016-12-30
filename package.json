@@ -340,6 +340,10 @@
         "key": "ctrl+x r",
         "command": "emacs.C-x_r",
         "when": "editorTextFocus"
+      },{
+        "key": "alt+y",
+        "command": "emacs.yank-pop",
+        "when": "editorTextFocus"
       }
     ]
   },

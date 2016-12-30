@@ -11,13 +11,14 @@ enum KeybindProgressMode {
 };
 
 export class Editor {
-    private killRing: string;
+    private killRing: string[];
     private isKillRepeated: boolean;
     private keybindProgressMode: KeybindProgressMode;
     private registersStorage: { [key:string] : RegisterContent; };
+    public static event: boolean;
 
     constructor() {
-        this.killRing = '';
+        this.killRing = [];
         this.isKillRepeated = false;
         this.keybindProgressMode = KeybindProgressMode.None;
         this.registersStorage = {};
@@ -136,7 +137,15 @@ export class Editor {
             editBuilder.insert(this.getSelection().active, this.killRing);
         });
         this.isKillRepeated = false;
+        Editor.event = false;
         return true;
+    }
+    yankPop(): boolean {
+        if(Editor.event) {
+            return false;
+        }
+        this.undo();
+
     }
 
     undo(): void {
@@ -297,7 +306,7 @@ export class Editor {
                 text: text
             });
         }
-        return;    
+        return;
     }
 
     SaveTextToRegister(registerName: string): void {
@@ -331,4 +340,23 @@ export class Editor {
         }  
         return;
     }
+}
+
+class EventController {
+    private _disposable: vscode.Disposable;
+
+    constructor() {
+        let subscriptions: vscode.Disposable[] = [];
+        vscode.window.onDidChangeTextEditorSelection(this._onEvent, this, subscriptions);
+        vscode.window.onDidChangeActiveTextEditor(this._onEvent, this, subscriptions);
+        Editor.event = true;
+        this._disposable = vscode.Disposable.from(...subscriptions);
+    }
+    dispose() {
+        this._disposable.dispose();
+    }
+    private _onEvent() {
+        Editor.event = true;
+    }
+
 }

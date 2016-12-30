@@ -48,6 +48,13 @@ export class Operation {
             "C-x_r": () => {
                 this.editor.setRMode();
             },
+            "M-y": () => {
+                if(this.editor.yankPop()) {
+                    this.editor.setStatusBarMessage("Yank Pop");    
+                } else {
+                    this.editor.setStatusBarMessage("Previous command was not a yank");
+                }                
+            }
         };
     }
 
