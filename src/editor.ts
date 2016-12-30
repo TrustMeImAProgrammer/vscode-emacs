@@ -131,7 +131,6 @@ export class Editor {
         return true;
     }
     async yankPop(): Promise<boolean> {
-        console.log(this.yanked);
         if(!this.yanked) {
            return new Promise<boolean>((resolve) => {
                resolve(false);
