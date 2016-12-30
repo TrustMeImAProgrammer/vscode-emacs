@@ -12,18 +12,19 @@ enum KeybindProgressMode {
 
 export class Editor {
     private killRing: string[];
-    private isKillRepeated: boolean;
+    private ringIndex: number;
     private keybindProgressMode: KeybindProgressMode;
     private registersStorage: { [key:string] : RegisterContent; };
-    public static event: boolean;
+    private yanked;
 
     constructor() {
         this.killRing = [];
-        this.isKillRepeated = false;
         this.keybindProgressMode = KeybindProgressMode.None;
         this.registersStorage = {};
+        this.ringIndex = 0;
+        this.yanked = false;
         vscode.window.onDidChangeTextEditorSelection(() => {
-            this.isKillRepeated = false;
+            this.yanked = false;
         });
     }
 
@@ -56,8 +57,7 @@ export class Editor {
     /** Behave like Emacs kill command
     */
     kill(): void {
-        let saveIsKillRepeated = this.isKillRepeated,
-            promises = [
+        let promises = [
                 vscode.commands.executeCommand("emacs.exitMarkMode"),
                 vscode.commands.executeCommand("cursorEndSelect")
             ];
@@ -65,48 +65,38 @@ export class Editor {
         Promise.all(promises).then(() => {
             let selection = this.getSelection(),
                 range = new vscode.Range(selection.start, selection.end);
-
             this.setSelection(range.start, range.start);
-            this.isKillRepeated = saveIsKillRepeated;
             if (range.isEmpty) {
-                this.killEndOfLine(saveIsKillRepeated, range);
+                this.killEndOfLine(range);
             } else {
                 this.killText(range);
             }
         });
     }
 
-    private killEndOfLine(saveIsKillRepeated: boolean, range: vscode.Range): void {
+    private killEndOfLine(range: vscode.Range): void {
         let doc = vscode.window.activeTextEditor.document,
             eof = doc.lineAt(doc.lineCount - 1).range.end;
-
         if (doc.lineCount && !range.end.isEqual(eof) &&
             doc.lineAt(range.start.line).rangeIncludingLineBreak) {
-            this.isKillRepeated ? this.killRing += '\n' : this.killRing = '\n';
-            saveIsKillRepeated = true;
+            this.killRing[this.ringIndex++] = vscode.window.activeTextEditor.document.getText(range);
         } else {
             this.setStatusBarMessage("End of buffer");
         }
-        vscode.commands.executeCommand("deleteRight").then(() => {
-            this.isKillRepeated = saveIsKillRepeated;
-        });
+        vscode.commands.executeCommand("deleteRight");
     }
 
     private killText(range: vscode.Range): void {
-        let text = vscode.window.activeTextEditor.document.getText(range),
-            promises = [
-                Editor.delete(range),
-                vscode.commands.executeCommand("emacs.exitMarkMode")
-            ];
-
-        this.isKillRepeated ? this.killRing += text : this.killRing = text;
-        Promise.all(promises).then(() => {
-            this.isKillRepeated = true;
-        });
+        let text = vscode.window.activeTextEditor.document.getText(range);
+        this.killRing[this.ringIndex++] = text
+        //max 20 items in the ring to avoid excessice memory use
+        //adjust if desired
+        this.ringIndex = this.ringIndex % 20;
+        Editor.delete(range),
+        vscode.commands.executeCommand("emacs.exitMarkMode")
     }
 
     copy(range: vscode.Range = null): boolean {
-        this.killRing = '';
         if (range === null) {
             range = this.getSelectionRange();
             if (range === null) {
@@ -114,7 +104,8 @@ export class Editor {
                 return false;
             }
         }
-        this.killRing = vscode.window.activeTextEditor.document.getText(range);
+        this.killRing[this.ringIndex++] = vscode.window.activeTextEditor.document.getText(range);
+        this.ringIndex = this.ringIndex % 20;
         vscode.commands.executeCommand("emacs.exitMarkMode");
         return this.killRing !== undefined;
     }
@@ -129,23 +120,42 @@ export class Editor {
         return true;
     }
 
-    yank(): boolean {
+    async yank(): Promise<boolean> {
         if (this.killRing.length === 0) {
             return false;
         }
-        vscode.window.activeTextEditor.edit(editBuilder => {
-            editBuilder.insert(this.getSelection().active, this.killRing);
+        await vscode.window.activeTextEditor.edit(editBuilder => {
+            editBuilder.insert(this.getSelection().active, this.killRing[this.ringIndex - 1]);
         });
-        this.isKillRepeated = false;
-        Editor.event = false;
+        this.yanked = true;
         return true;
     }
-    yankPop(): boolean {
-        if(Editor.event) {
-            return false;
+    async yankPop(): Promise<boolean> {
+        console.log(this.yanked);
+        if(!this.yanked) {
+           return new Promise<boolean>((resolve) => {
+               resolve(false);
+           });
         }
-        this.undo();
-
+        let currentPosition = this.getSelection().active;
+        let lines = this.killRing[this.ringIndex -1].split("\n");
+        let linesNumber = lines.length - 1;
+        let lastLine = lines[linesNumber];
+        let endPosition = currentPosition.translate(-linesNumber, -lastLine.length);
+        let deleteThis = new vscode.Range(currentPosition, endPosition);
+        await vscode.window.activeTextEditor.edit(editBuilder => {
+            editBuilder.delete(deleteThis);
+            });
+        this.ringIndex--;
+        if (this.ringIndex === 0) {
+            this.ringIndex = this.killRing.length;
+        }
+        await vscode.window.activeTextEditor.edit(editBuilder => {
+            editBuilder.replace(this.getSelection().active, this.killRing[this.ringIndex - 1]);
+        });
+        await vscode.commands.executeCommand("cancelSelection");
+        this.yanked = true;
+        return true;
     }
 
     undo(): void {
@@ -340,23 +350,4 @@ export class Editor {
         }  
         return;
     }
-}
-
-class EventController {
-    private _disposable: vscode.Disposable;
-
-    constructor() {
-        let subscriptions: vscode.Disposable[] = [];
-        vscode.window.onDidChangeTextEditorSelection(this._onEvent, this, subscriptions);
-        vscode.window.onDidChangeActiveTextEditor(this._onEvent, this, subscriptions);
-        Editor.event = true;
-        this._disposable = vscode.Disposable.from(...subscriptions);
-    }
-    dispose() {
-        this._disposable.dispose();
-    }
-    private _onEvent() {
-        Editor.event = true;
-    }
-
 }

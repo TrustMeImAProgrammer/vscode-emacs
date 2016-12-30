@@ -49,11 +49,16 @@ export class Operation {
                 this.editor.setRMode();
             },
             "M-y": () => {
-                if(this.editor.yankPop()) {
-                    this.editor.setStatusBarMessage("Yank Pop");    
-                } else {
-                    this.editor.setStatusBarMessage("Previous command was not a yank");
-                }                
+                let that = this;
+                this.editor.yankPop().then(function(result) {
+                    if (result) {
+                        that.editor.setStatusBarMessage("Yank Pop");
+                    } else {
+                        that.editor.setStatusBarMessage("Previous command was not a yank");
+                    }
+                }).catch(function(error) {
+                    console.log(error);
+                });
             }
         };
     }

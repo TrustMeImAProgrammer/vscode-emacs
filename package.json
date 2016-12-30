@@ -342,7 +342,7 @@
         "when": "editorTextFocus"
       },{
         "key": "alt+y",
-        "command": "emacs.yank-pop",
+        "command": "emacs.M-y",
         "when": "editorTextFocus"
       }
     ]
