@@ -15,7 +15,7 @@ export class Editor {
     private ringIndex: number;
     private keybindProgressMode: KeybindProgressMode;
     private registersStorage: { [key:string] : RegisterContent; };
-    private yanked;
+    private yanked: boolean;
 
     constructor() {
         this.killRing = [];
