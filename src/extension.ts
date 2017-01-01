@@ -35,7 +35,7 @@ export function activate(context: vscode.ExtensionContext): void {
                     element
                 );
             })
-        )
+        );
     });
     // 'type' is not an "emacs." command and should be registered separately
     context.subscriptions.push(vscode.commands.registerCommand("type", function (args) {
@@ -44,7 +44,6 @@ export function activate(context: vscode.ExtensionContext): void {
 		}
 		op.onType(args.text);        
     }));
-
     initMarkMode(context);
 }
 
@@ -54,9 +53,13 @@ export function deactivate(): void {
 function initMarkMode(context: vscode.ExtensionContext): void {
     context.subscriptions.push(vscode.commands.registerCommand(
         'emacs.enterMarkMode', () => {
-            initSelection();
-            inMarkMode = true;
-            vscode.window.setStatusBarMessage("Mark Set", 1000);
+            if(!inMarkMode) {
+                initSelection();
+                inMarkMode = true;
+                vscode.window.setStatusBarMessage("Mark Set", 1000);
+            } else {
+                vscode.commands.executeCommand("emacs.exitMarkMode");
+            }
         })
     );
 

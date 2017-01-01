@@ -61,8 +61,9 @@ export class Operation {
                 });
             },
             "backspace": () => {
-                commands.executeCommand("deleteLeft");
-                commands.executeCommand("cancelSelection");
+                commands.executeCommand("deleteLeft").then(() => {
+                    commands.executeCommand("emacs.exitMarkMode");
+                });
             }
         };
     }

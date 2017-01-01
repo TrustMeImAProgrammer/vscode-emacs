@@ -88,12 +88,12 @@ export class Editor {
 
     private killText(range: vscode.Range): void {
         let text = vscode.window.activeTextEditor.document.getText(range);
-        this.killRing[this.ringIndex++] = text
+        this.killRing[this.ringIndex++] = text;
         //max 20 items in the ring to avoid excessice memory use
         //adjust if desired
         this.ringIndex = this.ringIndex % 20;
-        Editor.delete(range),
-        vscode.commands.executeCommand("emacs.exitMarkMode")
+        Editor.delete(range);
+        vscode.commands.executeCommand("emacs.exitMarkMode");
     }
 
     copy(range: vscode.Range = null): boolean {
@@ -319,7 +319,7 @@ export class Editor {
     }
 
     SaveTextToRegister(registerName: string): void {
-        if (null == registerName) {
+        if (null === registerName) {
             return;
         }
         let range : vscode.Range = this.getSelectionRange();
@@ -335,7 +335,7 @@ export class Editor {
     RestoreTextFromRegister(registerName: string): void {
         vscode.commands.executeCommand("emacs.exitMarkMode"); // emulate Emacs 
         let obj : RegisterContent = this.registersStorage[registerName];
-        if (null == obj) {
+        if (null === obj) {
             this.setStatusBarMessage("Register does not contain text.");
             return;
         }
